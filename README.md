@@ -6,7 +6,7 @@
 </div>
 
 > [!IMPORTANT]
-> Linux is bugged and barely working. Check [Running the app](https://github.com/PinpointTools/SendYourFiles/tree/main?tab=readme-ov-file#running-the-app) and [Compiling the app](https://github.com/PinpointTools/SendYourFiles/tree/main?tab=readme-ov-file#compiling-the-app).
+> Linux is bugged and barely working. Check [Running the app](https://github.com/PinpointTools/SendYourFiles/tree/main?tab=readme-ov-file#running-the-app) and [Compiling the app](https://github.com/PinpointTools/SendYourFiles/tree/main?tab=readme-ov-file#compiling-the-app). You can help us by submitting a PR or just do a Issue and tell us how'd you fix it.
 
 # Preview
 <div align="center">
