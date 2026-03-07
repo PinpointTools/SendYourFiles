@@ -1,5 +1,4 @@
 import flask as f
-import src.back.util.print as print
 
 app = f.Flask(
     __name__,
