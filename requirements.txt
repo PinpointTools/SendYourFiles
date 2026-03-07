@@ -1,7 +1,6 @@
 requests
 pyinstaller
-pywebview[gtk]; sys_platform == "linux"
-pywebview; sys_platform != "linux"
+flask
 desktop-notifier
 pystray
 termcolor
