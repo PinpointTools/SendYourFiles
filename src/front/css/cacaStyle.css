@@ -90,8 +90,10 @@ body {
 #logs {
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.9em;
-    max-width: 100%;
+    max-width: 350px;
     overflow-x: auto;
+
+    scrollbar-width: none;
 
     user-select: text;
     -webkit-user-select: text;

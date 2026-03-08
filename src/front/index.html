@@ -1,5 +1,14 @@
-<link rel="stylesheet" href={{ url_for('static', filename='css/cacaStyle.css') }}>
-<link rel="stylesheet" href={{ url_for('static', filename='css/popupStyle.css') }}>
+<head>
+    <title>Send Your Files</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+    <link rel="icon" href="/SendYourFiles.ico" type="image/x-icon">
+    <link rel="icon" href="/SendYourFiles.png" type="image/png">
+    <link rel="apple-touch-icon" href="/SendYourFiles.png" type="image/png">
+
+    <link rel="stylesheet" href={{ url_for('static', filename='css/cacaStyle.css') }}/>
+    <link rel="stylesheet" href={{ url_for('static', filename='css/popupStyle.css') }}/>
+</head>
 
 <script>
     let selectedFile = null;
@@ -10,10 +19,13 @@
             'sendTo.html',
             'settings.html',
             'credits.html',
+            
             'extra/sendTo-Fallback.html',
             'extra/litterboxTime.html',
+            
             'extra/limiter/catbox.html',
             'extra/limiter/litterbox.html',
+            
             'extra/updaters/newUpdateAvailable.html',
             'extra/updaters/failedToFetch.html',
         ];
@@ -37,21 +49,21 @@
     async function chooseFile() {
         const input = document.createElement("input");
         input.type = "file";
-    
+
         input.onchange = () => {
             const file = input.files[0];
             if (!file) return;
-    
+
             selectedFile = file;
             selectedSize = file.size;
-    
+
             const fileName = file.name;
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-    
+
             document.getElementById("logs").innerText =
                 `Selected: ${fileName} (${sizeMB} MB)`;
         };
-    
+
         input.click();
     }
 
@@ -140,11 +152,11 @@ ${result}`;
 
             const response = await fetch(`/api/send/${platform}`, {
                 method: 'POST',
-                body: formData 
+                body: formData
             });
 
             const result = await response.text();
-            
+
             if (!response.ok) {
                 logPanel.innerText = `Upload failed: ${result}`;
                 console.error(`Upload failed with status ${response.status}: ${result}`);
@@ -201,29 +213,17 @@ ${result}`;
             <p>Ever wanted to send your files without a restriction?</p>
             <p></p>
         </div>
-
-        <div class="flex" style="gap: 5px;">
-            <div class="button" onclick="showPopup('settingsPopup')">Settings</div>
-            <div class="button" onclick="showPopup('creditsPopup')">Credits</div>
-        </div>
     </div>
 
     <div class="frame">
-        <div class="anotherElem logs">
+        <div class="anotherElem">
             <pre id="logs">No logs yet. Send a file!</pre>
         </div>
 
         <div class="flex" style="gap: 5px;">
             <div class="button" onclick="chooseFile()">Choose File</div>
+            <div class="button" onclick="showPopup('creditsPopup')">Credits</div>
             <div class="button" onclick="showPopup('platformPopup')">Upload to...</div>
         </div>
     </div>
 </main>
-
-<style>
-    .logs {
-        max-width: 350px;
-        scrollbar-width: auto;
-        scrollbar-color: var(--frameColor) var(--elemColor);
-    }
-</style>
