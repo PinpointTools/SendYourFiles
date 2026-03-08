@@ -1,21 +1,19 @@
-<link rel="stylesheet" href="css/popupStyle.css">
-<link rel="stylesheet" href="css/cacaStyle.css">
+<link rel="stylesheet" href={{ url_for('static', filename='css/cacaStyle.css') }}>
+<link rel="stylesheet" href={{ url_for('static', filename='css/popupStyle.css') }}>
 
 <script>
-    let selectedPath = null;
-    let selectedSize = 0; // in bytes
+    let selectedFile = null;
+    let selectedSize = 0;
 
     async function loadPopups() {
         const popups = [
             'sendTo.html',
             'settings.html',
             'credits.html',
-
             'extra/sendTo-Fallback.html',
             'extra/litterboxTime.html',
             'extra/limiter/catbox.html',
             'extra/limiter/litterbox.html',
-
             'extra/updaters/newUpdateAvailable.html',
             'extra/updaters/failedToFetch.html',
         ];
@@ -34,85 +32,31 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
         await loadPopups();
-        if (window.pywebview) {
-            checkUpdates();
-        } else {
-            window.addEventListener('pywebviewready', checkUpdates);
-        }
     });
 
     async function chooseFile() {
-        try {
-            const data = await window.pywebview.api.pickFile();
-            if (data) {
-                selectedPath = data.path;
-                selectedSize = data.size;
-
-                const fileName = data.path.split(/[\\/]/).pop();
-                const sizeMB = (data.size / (1024 * 1024)).toFixed(2);
-
-                document.getElementById("logs").innerText = `Selected: ${fileName} (${sizeMB} MB)`;
-            }
-        } catch (e) {
-            console.error("Failed to pick file:", e);
-        }
-    }
-
-    async function saveSetting(key, value) {
-        try {
-            await window.pywebview.api.saveSettings(key, value);
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    async function loadSettings() {
-        const container = document.querySelector('#settingsPopup .overflow');
-        if (!container) return;
-        
-        container.innerHTML = '';
-
-        try {
-            const data = await window.pywebview.api.getSettings();
-            const settings = data.settings;
-
-            if (!settings || Object.keys(settings).length === 0) {
-                container.innerHTML = '<p style="padding: 10px; color: white;">No settings found.</p>';
-                return;
-            }
-
-            for (const key in settings) {
-                const item = settings[key];
-                
-                if (item.type === 'boolean') {
-                    const div = document.createElement('div');
-                    div.className = 'item settings-item';
-                    
-                    const isTrue = item.default === 'true';
-                    
-                    div.innerHTML = `
-                        <div class="info">
-                            <span class="bigText">${item.name}</span><br>
-                            <span>${item.description}</span>
-                        </div>
-
-                        <select id="${key}" onchange="saveSetting('${key}', this.value === 'true')">
-                            <option value="true" ${isTrue ? 'selected' : ''}>True</option>
-                            <option value="false" ${!isTrue ? 'selected' : ''}>False</option>
-                        </select>
-                    `;
-                    
-                    container.appendChild(div);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to load settings:", error);
-            container.innerHTML = "<p>Error loading settings.</p>";
-        }
+        const input = document.createElement("input");
+        input.type = "file";
+    
+        input.onchange = () => {
+            const file = input.files[0];
+            if (!file) return;
+    
+            selectedFile = file;
+            selectedSize = file.size;
+    
+            const fileName = file.name;
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    
+            document.getElementById("logs").innerText =
+                `Selected: ${fileName} (${sizeMB} MB)`;
+        };
+    
+        input.click();
     }
 
     function showPopup(id) {
-        if (id === 'platformPopup' && !selectedPath) {
+        if (id === 'platformPopup' && !selectedFile) {
             showPopup('fallbackPopup');
             return;
         }
@@ -140,9 +84,7 @@
         showPopup('litterboxTimePopup');
     }
 
-    // THE ROBUST COPY FUNCTION (stupid, but effective)
     function copyToClipboard(text) {
-        // fallback method for non-HTTPS/local contexts
         const textArea = document.createElement("textarea");
         textArea.value = text;
         document.body.appendChild(textArea);
@@ -161,44 +103,75 @@
     async function handleUploadSuccess(result) {
         const logPanel = document.getElementById("logs");
 
-        // check if the result is actually a URL (starts with http)
-        if (result && result.startsWith("http")) {
-            logPanel.innerText = `Success! (Copied!)\n${result}`;
+        if (result && typeof result === 'string' && result.startsWith("http")) {
+            logPanel.innerText = `Success! (Copied!)
+${result}`;
 
-            // try modern method first, then fallback
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 try {
                     await navigator.clipboard.writeText(result);
                 } catch (err) {
+                    console.error('Clipboard write failed, using fallback:', err);
                     copyToClipboard(result);
                 }
             } else {
                 copyToClipboard(result);
             }
         } else {
-            // it's probably an error message from our Python logic
-            logPanel.innerText = result;
+            logPanel.innerText = result || "Upload completed with no result or an unknown error.";
+        }
+    }
+
+    async function uploadFileToServer(platform, duration = null) {
+        if (!selectedFile) {
+            document.getElementById("logs").innerText = "Error: No file selected.";
+            return;
+        }
+
+        const logPanel = document.getElementById("logs");
+        logPanel.innerText = `Preparing upload to ${platform}${duration ? ` (${duration})` : ''}...`;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            if (duration) {
+                formData.append('duration', duration);
+            }
+
+            const response = await fetch(`/api/send/${platform}`, {
+                method: 'POST',
+                body: formData 
+            });
+
+            const result = await response.text();
+            
+            if (!response.ok) {
+                logPanel.innerText = `Upload failed: ${result}`;
+                console.error(`Upload failed with status ${response.status}: ${result}`);
+            } else {
+                await handleUploadSuccess(result);
+            }
+        } catch (e) {
+            logPanel.innerText = `Error: Upload failed - ${e.message}`;
+            console.error("Fetch error:", e);
         }
     }
 
     async function litterBoxExpire(timeLabel) {
         closePopup('litterboxTimePopup');
         const time = timeLabel.split(' ')[0].toLowerCase() + 'h';
-        const logPanel = document.getElementById("logs");
 
-        logPanel.innerText = `Uploading to Litterbox (${timeLabel})...`;
-
-        try {
-            const result = await window.pywebview.api.uploadTo(selectedPath, 'litterbox', time);
-            await handleUploadSuccess(result);
-        } catch (e) {
-            logPanel.innerText = "Error: Upload failed.";
-        }
+        await uploadFileToServer('litterbox', time);
     }
 
     async function triggerUpload(platform) {
         const sizeMB = selectedSize / (1024 * 1024);
         const logPanel = document.getElementById("logs");
+
+        if (!selectedFile) {
+            logPanel.innerText = "Error: No file selected.";
+            return;
+        }
 
         if (platform === 'catbox' && sizeMB > 200) {
             closePopup('platformPopup');
@@ -217,48 +190,7 @@
         }
 
         closePopup('platformPopup');
-        logPanel.innerText = `Preparing upload to ${platform}...`;
-
-        try {
-            const result = await window.pywebview.api.uploadTo(selectedPath, platform);
-            await handleUploadSuccess(result);
-        } catch (e) {
-            logPanel.innerText = "Error: Could not reach the server.";
-        }
-    }
-
-    async function checkUpdates() {
-        try {
-            const result = await window.pywebview.api.checkForUpdates();
-
-            if (result.status === "error") {
-                showPopup('failedToFetchPopup');
-            } else if (result.status === "success" && result.available) {
-                const downloadLink = document.getElementById('updateDownloadLink');
-                if (downloadLink) {
-                    downloadLink.href = `https://github.com/daveberrys/SendYourFiles/releases/tag/${result.latest}`;
-                }
-                const versionText = document.getElementById('updateVersionText');
-                if (versionText) {
-                    versionText.innerText = `Latest version: ${result.latest}`;
-                }
-                showPopup('newUpdateAvailablePopup');
-            }
-        } catch (e) {
-            console.error("Failed to check for updates:", e);
-        }
-    }
-
-    async function currentLocalVersion() {
-        try {
-            const result = await window.pywebview.api.localCurrentVersion();
-            const versionText = document.getElementById('localCurrentVersion');
-            if (versionText && result) {
-                versionText.innerText = `Current Local Version: ${result}`;
-            }
-        } catch (e) {
-            console.error("Javascript failed to call get local version:", e);
-        }
+        await uploadFileToServer(platform, null);
     }
 </script>
 
