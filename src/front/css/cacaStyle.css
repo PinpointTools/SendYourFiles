@@ -93,6 +93,8 @@ body {
     max-width: 100%;
     overflow-x: auto;
 
+    scrollbar-width: none;
+
     user-select: text;
     -webkit-user-select: text;
     cursor: text;
