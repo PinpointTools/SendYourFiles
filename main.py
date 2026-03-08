@@ -66,6 +66,14 @@ def sendFile(provider):
         
         return f.jsonify({"error": f"An internal error occurred: {str(e)}"}), 500
 
+# meow
+@app.route('/SendYourFiles.ico')
+def faviconICO():
+    return f.send_from_directory('public', 'SendYourFiles.ico', mimetype='image/x-icon')
+@app.route('/SendYourFiles.png')
+def faviconPNG():
+    return f.send_from_directory('public', 'SendYourFiles.png', mimetype='image/png')
+
 if __name__ == "__main__":
     if not os.path.exists(uploadFolder):
         os.makedirs(uploadFolder)

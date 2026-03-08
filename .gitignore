@@ -1,9 +1,7 @@
 *venv*
 
+instance/
 __pycache__
 *.pyc*
-
-build
-dist
 
 desktop.ini
