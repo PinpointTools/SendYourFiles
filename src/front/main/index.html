@@ -2,20 +2,18 @@
 <link rel="stylesheet" href={{ url_for('static', filename='css/popupStyle.css') }}>
 
 <script>
-    let selectedPath = null;
-    let selectedSize = 0; // in bytes
+    let selectedFile = null;
+    let selectedSize = 0;
 
     async function loadPopups() {
         const popups = [
             'sendTo.html',
             'settings.html',
             'credits.html',
-
             'extra/sendTo-Fallback.html',
             'extra/litterboxTime.html',
             'extra/limiter/catbox.html',
             'extra/limiter/litterbox.html',
-
             'extra/updaters/newUpdateAvailable.html',
             'extra/updaters/failedToFetch.html',
         ];
@@ -44,7 +42,7 @@
             const file = input.files[0];
             if (!file) return;
     
-            selectedPath = file.name; // browsers don't expose real path
+            selectedFile = file;
             selectedSize = file.size;
     
             const fileName = file.name;
@@ -58,7 +56,7 @@
     }
 
     function showPopup(id) {
-        if (id === 'platformPopup' && !selectedPath) {
+        if (id === 'platformPopup' && !selectedFile) {
             showPopup('fallbackPopup');
             return;
         }
@@ -86,9 +84,7 @@
         showPopup('litterboxTimePopup');
     }
 
-    // THE ROBUST COPY FUNCTION (stupid, but effective)
     function copyToClipboard(text) {
-        // fallback method for non-HTTPS/local contexts
         const textArea = document.createElement("textarea");
         textArea.value = text;
         document.body.appendChild(textArea);
@@ -107,44 +103,75 @@
     async function handleUploadSuccess(result) {
         const logPanel = document.getElementById("logs");
 
-        // check if the result is actually a URL (starts with http)
-        if (result && result.startsWith("http")) {
-            logPanel.innerText = `Success! (Copied!)\n${result}`;
+        if (result && typeof result === 'string' && result.startsWith("http")) {
+            logPanel.innerText = `Success! (Copied!)
+${result}`;
 
-            // try modern method first, then fallback
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 try {
                     await navigator.clipboard.writeText(result);
                 } catch (err) {
+                    console.error('Clipboard write failed, using fallback:', err);
                     copyToClipboard(result);
                 }
             } else {
                 copyToClipboard(result);
             }
         } else {
-            // it's probably an error message from our Python logic
-            logPanel.innerText = result;
+            logPanel.innerText = result || "Upload completed with no result or an unknown error.";
+        }
+    }
+
+    async function uploadFileToServer(platform, duration = null) {
+        if (!selectedFile) {
+            document.getElementById("logs").innerText = "Error: No file selected.";
+            return;
+        }
+
+        const logPanel = document.getElementById("logs");
+        logPanel.innerText = `Preparing upload to ${platform}${duration ? ` (${duration})` : ''}...`;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            if (duration) {
+                formData.append('duration', duration);
+            }
+
+            const response = await fetch(`/api/send/${platform}`, {
+                method: 'POST',
+                body: formData 
+            });
+
+            const result = await response.text();
+            
+            if (!response.ok) {
+                logPanel.innerText = `Upload failed: ${result}`;
+                console.error(`Upload failed with status ${response.status}: ${result}`);
+            } else {
+                await handleUploadSuccess(result);
+            }
+        } catch (e) {
+            logPanel.innerText = `Error: Upload failed - ${e.message}`;
+            console.error("Fetch error:", e);
         }
     }
 
     async function litterBoxExpire(timeLabel) {
         closePopup('litterboxTimePopup');
         const time = timeLabel.split(' ')[0].toLowerCase() + 'h';
-        const logPanel = document.getElementById("logs");
 
-        logPanel.innerText = `Uploading to Litterbox (${timeLabel})...`;
-
-        try {
-            // const result = await window.pywebview.api.uploadTo(selectedPath, 'litterbox', time);
-            await handleUploadSuccess(result);
-        } catch (e) {
-            logPanel.innerText = "Error: Upload failed.";
-        }
+        await uploadFileToServer('litterbox', time);
     }
 
     async function triggerUpload(platform) {
         const sizeMB = selectedSize / (1024 * 1024);
         const logPanel = document.getElementById("logs");
+
+        if (!selectedFile) {
+            logPanel.innerText = "Error: No file selected.";
+            return;
+        }
 
         if (platform === 'catbox' && sizeMB > 200) {
             closePopup('platformPopup');
@@ -163,14 +190,7 @@
         }
 
         closePopup('platformPopup');
-        logPanel.innerText = `Preparing upload to ${platform}...`;
-
-        try {
-            // const result = await window.pywebview.api.uploadTo(selectedPath, platform);
-            await handleUploadSuccess(result);
-        } catch (e) {
-            logPanel.innerText = "Error: Could not reach the server.";
-        }
+        await uploadFileToServer(platform, null);
     }
 </script>
 
