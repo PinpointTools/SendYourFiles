@@ -9,10 +9,10 @@ app = f.Flask(
     static_folder="src/front"
 )
 
-uploadFolder = os.path.join(app.instance_path, 'uploads')
-
-if not os.path.exists(uploadFolder):
-    os.makedirs(uploadFolder)
+isVercel = os.getenv("VERCEL") == "1"
+uploadRoot = "/tmp" if isVercel else app.instance_path
+uploadFolder = os.path.join(uploadRoot, "uploads")
+os.makedirs(uploadFolder, exist_ok=True)
 
 app.config['uploadFolder'] = uploadFolder
 
@@ -75,6 +75,5 @@ def faviconPNG():
     return f.send_from_directory('public', 'SendYourFiles.png', mimetype='image/png')
 
 if __name__ == "__main__":
-    if not os.path.exists(uploadFolder):
-        os.makedirs(uploadFolder)
-    app.run(debug=True)
+    os.makedirs(uploadFolder, exist_ok=True)
+    app.run()

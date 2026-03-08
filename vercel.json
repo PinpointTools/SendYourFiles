@@ -1,14 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "main.py",
-      "use": "@vercel/python",
-      "config": {
-        "includeFiles": ["src/**"]
-      }
+  "functions": {
+    "main.py": {
+      "includeFiles": [
+        "src/**",
+        "public/**"
+      ]
     }
-  ],
+  },
   "routes": [
     {
       "src": "/(.*)",
