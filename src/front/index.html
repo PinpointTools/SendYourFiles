@@ -1,5 +1,13 @@
-<link rel="stylesheet" href={{ url_for('static', filename='css/cacaStyle.css') }}>
-<link rel="stylesheet" href={{ url_for('static', filename='css/popupStyle.css') }}>
+<head>
+    <title>Send Your Files</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+    <link rel="icon" href="SendYourFiles.png" type="image/png">
+    <link rel="apple-touch-icon" href="SendYourFiles.png" type="image/png">
+
+    <link rel="stylesheet" href={{ url_for('static', filename='css/cacaStyle.css') }}/>
+    <link rel="stylesheet" href={{ url_for('static', filename='css/popupStyle.css') }}/>
+</head>
 
 <script>
     let selectedFile = null;
@@ -37,21 +45,21 @@
     async function chooseFile() {
         const input = document.createElement("input");
         input.type = "file";
-    
+
         input.onchange = () => {
             const file = input.files[0];
             if (!file) return;
-    
+
             selectedFile = file;
             selectedSize = file.size;
-    
+
             const fileName = file.name;
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-    
+
             document.getElementById("logs").innerText =
                 `Selected: ${fileName} (${sizeMB} MB)`;
         };
-    
+
         input.click();
     }
 
@@ -140,11 +148,11 @@ ${result}`;
 
             const response = await fetch(`/api/send/${platform}`, {
                 method: 'POST',
-                body: formData 
+                body: formData
             });
 
             const result = await response.text();
-            
+
             if (!response.ok) {
                 logPanel.innerText = `Upload failed: ${result}`;
                 console.error(`Upload failed with status ${response.status}: ${result}`);
