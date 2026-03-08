@@ -2,10 +2,7 @@
   "version": 2,
   "functions": {
     "main.py": {
-      "includeFiles": [
-        "src/**",
-        "public/**"
-      ]
+      "includeFiles": "{src/**,public/**}"
     }
   },
   "routes": [
